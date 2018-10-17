@@ -1,7 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import requests, urllib3, os
-from json import dumps
-from shutil import copyfile
+from json import dumps, load
+import shutil
 from hashlib import md5
+from datetime import datetime, timedelta
 
 USERNAME = 'root'
 PASSWORD = 'laboratory'
@@ -28,6 +32,7 @@ CLASS_NAMES = {
 
 STAGE_DIR = '/tmp/stage'
 BACKUP_DIR = '/tmp/backup'
+now = datetime.now()
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -179,17 +184,15 @@ if __name__ == "__main__":
         if os.path.isfile(file_path_backup):
             
             # se existir o arquivo, verifica se houve alteracao de hash
-            with open(file_path_stage) as stage_data:
-                with open(file_path_backup) as backup_data:
-                    stage_content = stage_data.read()
-                    backup_content = backup_data.read()
+            with open(file_path_stage) as stage_fh:
+                with open(file_path_backup) as backup_fh:
+                    stage_json = load(stage_fh)
+                    backup_json = load(backup_fh)
 
-                    data = []
-
-                    for content in [stage_content, backup_content]:
-                        data.append(md5(content.encode('utf-8')).digest())
-                       
-                    #if data[0] != data[1]:
+                    if stage_json == backup_json:
+                        print(file_name + ' - dados iguais')
+                    else:    
+                        print(file_name + ' - dados diferentes')
 
         else: 
             
