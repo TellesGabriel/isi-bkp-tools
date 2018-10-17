@@ -1,5 +1,7 @@
 import requests, urllib3, os
 from json import dumps
+from shutil import copyfile
+from hashlib import md5
 
 USERNAME = 'root'
 PASSWORD = 'laboratory'
@@ -12,6 +14,8 @@ API_CALLS = {
     'pools': '/3/network/groupnets/%s/subnets/%s/pools',
     'rules': '/3/network/groupnets/%s/subnets/%s/pools/%s/rules',
     'zones': '/3/zones',
+    'shares': '/4/protocols/smb/shares?zone=%s',
+    'exports': '/4/protocols/nfs/exports?zone=%s',
 }
 
 CLASS_NAMES = {
@@ -115,6 +119,32 @@ class Zones(IsiJson):
     def __init__(self):
         super().__init__('zones')
 
+class Shares(IsiJson):
+
+    def __init__(self, parents):
+        super().__init__('shares', parents, [])
+
+    def get_api_call_string(self):
+        return super().get_api_call_string() % (self.parents['zones'])
+
+    def generate_dump_name(self, sub_object_id):
+        return '%s-%s.%s.json' % (self.json_attribute_name, self.parents['zones'], sub_object_id)
+
+class Exports(IsiJson):
+
+    def __init__(self, parents):
+        super().__init__('exports', parents, [])
+
+    def get_api_call_string(self):
+        return super().get_api_call_string() % (self.parents['zones'])
+
+    def generate_dump_name(self, sub_object_id):
+        return '%s-%s.%s.json' % (self.json_attribute_name, self.parents['zones'], sub_object_id)
+
+    def backup_children(self):
+        return True
+
+
 if __name__ == "__main__":
 
     for dir_path in [STAGE_DIR, BACKUP_DIR]:
@@ -132,7 +162,42 @@ if __name__ == "__main__":
     zones = Zones()
     zones.backup()
 
-    # analisa hash
+    for zone in zones.objects:
 
-    # armazena backup
+        share = Shares( {'zones': zone['name']} )
+        share.backup()
+
+        exports = Exports({'zones': zone['name']})
+        exports.backup()
+
+    for file_name in os.listdir(STAGE_DIR):
+
+        file_path_stage = os.path.join(STAGE_DIR, file_name)
+        file_path_backup = os.path.join(BACKUP_DIR, file_name)
+
+        # verifica se existe o arquivo no destino
+        if os.path.isfile(file_path_backup):
+            
+            # se existir o arquivo, verifica se houve alteracao de hash
+            with open(file_path_stage) as stage_data:
+                with open(file_path_backup) as backup_data:
+                    stage_content = stage_data.read()
+                    backup_content = backup_data.read()
+
+                    data = []
+
+                    for content in [stage_content, backup_content]:
+                        data.append(md5(content.encode('utf-8')).digest())
+                       
+                    #if data[0] != data[1]:
+
+        else: 
+            
+            # se nao existir o arquivo, basta copiar o arquivo da area de stage para backup
+            copyfile(file_path_stage, file_path_backup)
+
+        os.remove(file_path_stage)
+
+
+    
     
