@@ -193,13 +193,10 @@ if __name__ == "__main__":
                     backup_json = load(backup_fh)
 
                     if stage_json == backup_json:
-                        print('passou')
+                        print('OK')
                     else:    
-                        print(file_name + ' - dados diferentes')
-                        #pegar o arquivo que esta diferente
-                        newFile = os.path.join(STAGE_DIR, '%s.%s' %(dataMod, file_name))
-                        shutil.move(os.path.join(BACKUP_DIR, file_name), newFile)
-                        #os.remove(file_name)  
+                        newFile = os.path.join(BACKUP_DIR, '%s.%s' %(dataMod, file_name))
+                        shutil.move(os.path.join(BACKUP_DIR, file_name), newFile)  
         else: 
             
             # se nao existir o arquivo, basta copiar o arquivo da area de stage para backup
